@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EduGenie</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Welcome to EduGenie 🧠✨</h1>
+    <p>Your personal AI tutor for learning support!</p>
+
+    <!-- Q&A -->
+    <form id="qaForm">
+        <label><strong>Ask EduGenie a Question:</strong></label><br><br>
+        <input type="text" id="question" placeholder="Why is the sky blue?" required>
+        <button type="submit">Get Answer</button>
+    </form>
+    <div id="qaResult" class="output"></div>
+
+    <hr>
+
+    <!-- Explanation -->
+    <form id="explainForm">
+        <label><strong>Need an Explanation?</strong></label><br><br>
+        <input type="text" id="topic" placeholder="Photosynthesis" required>
+        <button type="submit">Explain</button>
+    </form>
+    <div id="explanationResult" class="output"></div>
+
+    <hr>
+
+    <!-- Summary -->
+    <form id="summaryForm">
+        <label><strong>Summarize a Paragraph:</strong></label><br><br>
+        <input type="text" id="summaryText" placeholder="Paste long content to summarize" required>
+        <button type="submit">Summarize</button>
+    </form>
+    <div id="summaryResult" class="output"></div>
+
+    <hr>
+
+    <!-- Quiz -->
+    <form id="quizForm">
+        <label><strong>Generate a Quiz:</strong></label><br><br>
+        <input type="text" id="quizText" placeholder="Solar System" required>
+        <button type="submit">Generate Quiz</button>
+    </form>
+    <div id="quizResult" class="output"></div>
+
+    <script>
+        // Q&A Logic
+        document.getElementById("qaForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const question = document.getElementById("question").value;
+            document.getElementById("qaResult").innerText = "Thinking...";
+            const response = await fetch(`/qa?question=${encodeURIComponent(question)}`);
+            const data = await response.json();
+            document.getElementById("qaResult").innerText = data.answer || data.error;
+        };
+
+        // Explanation Logic
+        document.getElementById("explainForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const topic = document.getElementById("topic").value;
+            document.getElementById("explanationResult").innerText = "Generating explanation...";
+            const response = await fetch("/explain/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ topic: topic })
+            });
+            const data = await response.json();
+            document.getElementById("explanationResult").innerText = data.explanation || data.error;
+        };
+
+        // Summary Logic
+        document.getElementById("summaryForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const text = document.getElementById("summaryText").value;
+            document.getElementById("summaryResult").innerText = "Summarizing...";
+            const response = await fetch("/summarize/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: text })
+            });
+            const data = await response.json();
+            document.getElementById("summaryResult").innerText = data.summary || data.error;
+        };
+
+        // Quiz Logic
+        document.getElementById("quizForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const text = document.getElementById("quizText").value;
+            const quizResultDiv = document.getElementById("quizResult");
+            quizResultDiv.innerText = "Creating quiz...";
+            
+            try {
+                const response = await fetch("/quiz", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    quizResultDiv.innerText = data.error;
+                    return;
+                }
+
+                const quizData = JSON.parse(data.quiz);
+                quizResultDiv.innerHTML = "<h3>Quiz:</h3>";
+                
+                quizData.forEach((q, index) => {
+                    let questionHTML = `<div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                        <p><strong>Q${index + 1}: ${q.question}</strong></p>`;
+                    
+                    q.options.forEach(opt => {
+                        questionHTML += `<label style="display:block; margin-bottom: 5px;">
+                            <input type="radio" name="q${index}" value="${opt.replace(/"/g, '&quot;')}"> ${opt}
+                        </label>`;
+                    });
+                    
+                    questionHTML += `<br><button type="button" onclick="checkAnswer('q${index}', '${q.answer.replace(/"/g, '&quot;')}')">Check Answer</button>
+                        <p id="feedback-q${index}" style="margin-top: 10px; font-weight: bold;"></p>
+                    </div>`;
+                    
+                    quizResultDiv.innerHTML += questionHTML;
+                });
+                
+            } catch (err) {
+                quizResultDiv.innerText = "Error generating or formatting the quiz.";
+                console.error(err);
+            }
+        };
+
+        window.checkAnswer = function(questionName, correctAnswer) {
+            const selected = document.querySelector(`input[name="${questionName}"]:checked`);
+            const feedbackEl = document.getElementById(`feedback-${questionName}`);
+            
+            if (!selected) {
+                feedbackEl.innerText = "Please select an answer first.";
+                feedbackEl.style.color = "orange";
+                return;
+            }
+            
+            if (selected.value === correctAnswer) {
+                feedbackEl.innerText = "✅ Correct!";
+                feedbackEl.style.color = "green";
+            } else {
+                feedbackEl.innerText = `❌ Incorrect. Correct answer: ${correctAnswer}`;
+                feedbackEl.style.color = "red";
+            }
+        };
+    </script>
+</body>
+</html>
