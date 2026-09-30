@@ -1,6 +1,4 @@
-__pycache__/
-*.pyc
-.env
-*.bin
-*.safetensors
-*.h5
+fastapi
+uvicorn
+jinja2
+google-genai
